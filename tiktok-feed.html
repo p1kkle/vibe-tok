@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Feed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* Layout Container */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 240px;
+            background: rgba(0, 0, 0, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 80px 0 20px 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            position: relative;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(45deg, #ff0050, #00f2ea);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 16px;
+            fill: currentColor;
+        }
+
+        .nav-text {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: #ff0050;
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            position: relative;
+        }
+
+        /* Header Styles */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 240px;
+            right: 0;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff0050, #00f2ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            cursor: pointer;
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-bar {
+            width: 100%;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 0 40px 0 40px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-bar:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .search-bar::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            fill: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .clear-search:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .clear-search svg {
+            width: 14px;
+            height: 14px;
+            fill: #fff;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .profile-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+        }
+
+        /* Video Container */
+        .video-container {
+            height: 100vh;
+            padding-top: 60px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+
+        .video-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .video-card {
+            height: calc(100vh - 60px);
+            width: 100%;
+            position: relative;
+            scroll-snap-align: start;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+        }
+
+        .video-card.hidden {
+            display: none;
+        }
+
+        .no-results {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+            z-index: 50;
+        }
+
+        .no-results.show {
+            display: block;
+        }
+
+        .no-results h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .no-results p {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .video-player {
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            position: relative;
+            background: #000;
+            cursor: pointer;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(transparent 70%, rgba(0,0,0,0.8));
+            pointer-events: none;
+        }
+
+        .play-pause-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .play-pause-overlay.show {
+            opacity: 1;
+        }
+
+        .play-icon, .pause-icon {
+            width: 30px;
+            height: 30px;
+            fill: #fff;
+        }
+
+        .actions {
+            position: absolute;
+            right: 15px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .action-btn-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .action-btn:hover .action-btn-icon {
+            transform: scale(1.1);
+            background: rgba(255,255,255,0.2);
+        }
+
+        .action-btn:active .action-btn-icon {
+            transform: scale(0.95);
+        }
+
+        .action-btn.liked .action-btn-icon svg {
+            fill: #ff2d55;
+            animation: likeAnimation 0.4s ease-in-out;
+        }
+
+        @keyframes likeAnimation {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        .action-btn-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+            transition: fill 0.2s;
+        }
+
+        .action-count {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            text-align: center;
+            min-width: 30px;
+        }
+
+        .video-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 80px;
+            z-index: 10;
+        }
+
+        .username {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .description {
+            font-size: 14px;
+            line-height: 1.4;
+            opacity: 0.9;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .header {
+                left: 0;
+                padding: 0 10px;
+            }
+
+            .logo {
+                display: none;
+            }
+
+            .search-container {
+                margin: 0 10px;
+            }
+
+            .video-player {
+                border-radius: 0;
+                max-width: 100%;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .video-player {
+                border-radius: 8px;
+                overflow: hidden;
+            }
+        }
+
+        /* Tablet adjustments */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .sidebar {
+                width: 70px;
+                padding: 80px 0 20px 0;
+            }
+
+            .nav-text, .nav-badge {
+                display: none;
+            }
+
+            .nav-item {
+                justify-content: center;
+                padding: 12px;
+            }
+
+            .nav-icon {
+                margin-right: 0;
+            }
+
+            .main-content {
+                margin-left: 70px;
+            }
+
+            .header {
+                left: 70px;
+            }
+
+            .logo {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-page="home">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                    <span class="nav-text">Home</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="search">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <span class="nav-text">Search</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="discover">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M12 10.9c-.61 0-1.1.49-1.1 1.1s.49 1.1 1.1 1.1c.61 0 1.1-.49 1.1-1.1s-.49-1.1-1.1-1.1zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2.19 12.19L6 18l3.81-8.19L18 6l-3.81 8.19z"/>
+                    </svg>
+                    <span class="nav-text">Discover</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="messages">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    <span class="nav-text">Messages</span>
+                    <span class="nav-badge">3</span>
+                </a>
+
+                <a href="#" class="nav-item" data-page="profile">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    <span class="nav-text">Profile</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Navigation -->
+            <header class="header">
+                <div class="logo">TokFeed</div>
+
+                <div class="search-container">
+                    <svg class="search-icon" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <input type="text" class="search-bar" id="searchInput" placeholder="Search videos..." autocomplete="off">
+                    <div class="clear-search" id="clearSearch">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="profile-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                </div>
+            </header>
+
+            <!-- No Results Message -->
+            <div class="no-results" id="noResults">
+                <h2>No videos found</h2>
+                <p>Try searching for something else</p>
+            </div>
+
+            <!-- Video Container -->
+            <div class="video-container">
+                <div class="video-card" data-video-id="video-0" data-searchable="nature explorer forest canopy sunlight peaceful">
+                    <div class="video-player" onclick="togglePlay(0)">
+                        <video id="video-0" loop playsinline muted preload="auto">
+                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-overlay"></div>
+                        <div class="play-pause-overlay" id="overlay-0">
+                            <svg class="play-icon" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <svg class="pause-icon" style="display:none" viewBox="0 0 24 24">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                        </div>
+                        <div class="video-info">
+                            <div class="username">@nature_explorer</div>
+                            <div class="description">Sunlight through the forest canopy 🌲☀️ #nature #forest #peaceful</div>
+                        </div>
+                        <div class="actions">
+                            <div class="action-btn like-btn" data-video-id="video-0" onclick="toggleLike(this, event)">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">42.3K</span>
+                            </div>
+                            <div class="action-btn">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">892</span>
+                            </div>
+                            <div class="action-btn">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">231</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-video-id="video-1" data-searchable="dance master new challenge move viral">
+                    <div class="video-player" onclick="togglePlay(1)">
+                        <video id="video-1" loop playsinline muted preload="auto">
+                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-overlay"></div>
+                        <div class="play-pause-overlay" id="overlay-1">
+                            <svg class="play-icon" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <svg class="pause-icon" style="display:none" viewBox="0 0 24 24">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                        </div>
+                        <div class="video-info">
+                            <div class="username">@dance_master</div>
+                            <div class="description">New dance challenge! Try this move 💃 #dance #viral</div>
+                        </div>
+                        <div class="actions">
+                            <div class="action-btn like-btn" data-video-id="video-1" onclick="toggleLike(this, event)">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">128.5K</span>
+                            </div>
+                            <div class="action-btn">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">3.2K</span>
+                            </div>
+                            <div class="action-btn">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">892</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-video-id="video-2" data-searchable="foodie life quick recipe pasta hack food cooking">
+                    <div class="video-player" onclick="togglePlay(2)">
+                        <video id="video-2" loop playsinline muted preload="auto">
+                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-overlay"></div>
+                        <div class="play-pause-overlay" id="overlay-2">
+                            <svg class="play-icon" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <svg class="pause-icon" style="display:none" viewBox="0 0 24 24">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                        </div>
+                        <div class="video-info">
+                            <div class="username">@foodie_life</div>
+                            <div class="description">Quick recipe: 5 minute pasta hack 🍝 #food #recipe #cooking</div>
+                        </div>
+                        <div class="actions">
+                            <div class="action-btn like-btn" data-video-id="video-2" onclick="toggleLike(this, event)">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">67.8K</span>
+                            </div>
+                            <div class="action-btn">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">1.5K</span>
+                            </div>
+                            <div class="action-btn">
+                                <div class="action-btn-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                                    </svg>
+                                </div>
+                                <span class="action-count">423</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Video data with initial like counts
+        const videoData = {
+            'video-0': { likes: 42300, liked: false },
+            'video-1': { likes: 128500, liked: false },
+            'video-2': { likes: 67800, liked: false }
+        };
+
+        // Load saved likes from localStorage
+        function loadLikesFromStorage() {
+            const savedLikes = localStorage.getItem('videoLikes');
+            if (savedLikes) {
+                const parsedLikes = JSON.parse(savedLikes);
+                Object.keys(parsedLikes).forEach(videoId => {
+                    if (videoData[videoId]) {
+                        videoData[videoId] = parsedLikes[videoId];
+                    }
+                });
+            }
+            updateAllLikeButtons();
+        }
+
+        // Save likes to localStorage
+        function saveLikesToStorage() {
+            localStorage.setItem('videoLikes', JSON.stringify(videoData));
+        }
+
+        // Format like count (e.g., 1234 -> 1.2K)
+        function formatLikeCount(count) {
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            } else if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'K';
+            }
+            return count.toString();
+        }
+
+        // Toggle like functionality
+        function toggleLike(btn, event) {
+            event.stopPropagation();
+
+            const videoId = btn.dataset.videoId;
+            const countSpan = btn.querySelector('.action-count');
+
+            if (!videoData[videoId]) return;
+
+            // Toggle liked state
+            videoData[videoId].liked = !videoData[videoId].liked;
+
+            // Update like count
+            if (videoData[videoId].liked) {
+                videoData[videoId].likes += 1;
+                btn.classList.add('liked');
+            } else {
+                videoData[videoId].likes -= 1;
+                btn.classList.remove('liked');
+            }
+
+            // Update UI
+            countSpan.textContent = formatLikeCount(videoData[videoId].likes);
+
+            // Save to localStorage
+            saveLikesToStorage();
+        }
+
+        // Update all like buttons based on saved state
+        function updateAllLikeButtons() {
+            Object.keys(videoData).forEach(videoId => {
+                const btn = document.querySelector(`.like-btn[data-video-id="${videoId}"]`);
+                if (btn) {
+                    const countSpan = btn.querySelector('.action-count');
+                    countSpan.textContent = formatLikeCount(videoData[videoId].likes);
+
+                    if (videoData[videoId].liked) {
+                        btn.classList.add('liked');
+                    } else {
+                        btn.classList.remove('liked');
+                    }
+                }
+            });
+        }
+
+        const videos = [
+            document.getElementById('video-0'),
+            document.getElementById('video-1'),
+            document.getElementById('video-2')
+        ];
+
+        const overlays = [
+            document.getElementById('overlay-0'),
+            document.getElementById('overlay-1'),
+            document.getElementById('overlay-2')
+        ];
+
+        // Sidebar navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Remove active class from all items
+                navItems.forEach(nav => nav.classList.remove('active'));
+
+                // Add active class to clicked item
+                this.classList.add('active');
+
+                // Handle navigation
+                const page = this.dataset.page;
+                if (page === 'search') {
+                    document.getElementById('searchInput').focus();
+                } else if (page === 'profile') {
+                    alert('Profile page coming soon!');
+                } else if (page === 'messages') {
+                    alert('Messages page coming soon!');
+                } else if (page === 'discover') {
+                    alert('Discover page coming soon!');
+                }
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        const videoCards = document.querySelectorAll('.video-card');
+        const noResults = document.getElementById('noResults');
+        const videoContainer = document.querySelector('.video-container');
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+
+            // Show/hide clear button
+            clearSearchBtn.style.display = searchTerm ? 'flex' : 'none';
+
+            // Filter videos
+            let visibleCount = 0;
+            videoCards.forEach(card => {
+                const searchableText = card.dataset.searchable.toLowerCase();
+                if (searchTerm === '' || searchableText.includes(searchTerm)) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // Show no results message if needed
+            if (visibleCount === 0 && searchTerm !== '') {
+                noResults.classList.add('show');
+                videoContainer.style.display = 'none';
+            } else {
+                noResults.classList.remove('show');
+                videoContainer.style.display = 'block';
+            }
+
+            // Reset scroll position when searching
+            if (searchTerm) {
+                videoContainer.scrollTop = 0;
+            }
+        });
+
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            clearSearchBtn.style.display = 'none';
+            videoCards.forEach(card => {
+                card.classList.remove('hidden');
+            });
+            noResults.classList.remove('show');
+            videoContainer.style.display = 'block';
+        });
+
+        // Video playback functionality
+        function togglePlay(index) {
+            const video = videos[index];
+            const overlay = overlays[index];
+            const playIcon = overlay.querySelector('.play-icon');
+            const pauseIcon = overlay.querySelector('.pause-icon');
+
+            if (video.paused) {
+                // Pause all other videos
+                videos.forEach((v, i) => {
+                    if (i !== index) {
+                        v.pause();
+                        const otherOverlay = overlays[i];
+                        otherOverlay.querySelector('.play-icon').style.display = 'block';
+                        otherOverlay.querySelector('.pause-icon').style.display = 'none';
+                    }
+                });
+
+                // Play the selected video
+                video.play().then(() => {
+                    playIcon.style.display = 'none';
+                    pauseIcon.style.display = 'block';
+                }).catch(err => {
+                    console.error('Error playing video:', err);
+                });
+            } else {
+                video.pause();
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+            }
+
+            overlay.classList.add('show');
+            setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 600);
+        }
+
+        // Scroll-based video autoplay
+        let currentIndex = 0;
+
+        videoContainer.addEventListener('scroll', () => {
+            const scrollPosition = videoContainer.scrollTop;
+            const windowHeight = window.innerHeight - 60; // Adjust for header
+            const newIndex = Math.round(scrollPosition / windowHeight);
+
+            if (newIndex !== currentIndex) {
+                currentIndex = newIndex;
+
+                videos.forEach((video, index) => {
+                    const card = videoCards[index];
+                    if (!card.classList.contains('hidden') && index === currentIndex) {
+                        video.play().then(() => {
+                            const overlay = overlays[index];
+                            overlay.querySelector('.play-icon').style.display = 'none';
+                            overlay.querySelector('.pause-icon').style.display = 'block';
+                        }).catch(err => {
+                            console.error('Error auto-playing video:', err);
+                        });
+                    } else {
+                        video.pause();
+                        const overlay = overlays[index];
+                        if (overlay) {
+                            overlay.querySelector('.play-icon').style.display = 'block';
+                            overlay.querySelector('.pause-icon').style.display = 'none';
+                        }
+                    }
+                });
+            }
+        });
+
+        // Initial setup
+        window.addEventListener('load', () => {
+            // Load saved likes
+            loadLikesFromStorage();
+
+            // Play first video
+            videos[0].play().then(() => {
+                overlays[0].querySelector('.play-icon').style.display = 'none';
+                overlays[0].querySelector('.pause-icon').style.display = 'block';
+            }).catch(err => {
+                console.error('Error auto-playing first video:', err);
+            });
+        });
+
+        // Profile icon click handler
+        document.querySelector('.profile-icon').addEventListener('click', function() {
+            // Trigger profile nav item
+            document.querySelector('.nav-item[data-page="profile"]').click();
+        });
+
+        // Logo click handler
+        const logo = document.querySelector('.logo');
+        if (logo) {
+            logo.addEventListener('click', function() {
+                searchInput.value = '';
+                clearSearchBtn.style.display = 'none';
+                videoCards.forEach(card => {
+                    card.classList.remove('hidden');
+                });
+                noResults.classList.remove('show');
+                videoContainer.style.display = 'block';
+                videoContainer.scrollTop = 0;
+            });
+        }
+    </script>
+</body>
+</html>
